@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gslocal"
+version = "0.1.0"
+description = "Local Gradescope autograder runner"
+requires-python = ">=3.9"
+dependencies = [
+    "colorama",
+    "tomli; python_version < '3.11'",
+]
+
+[project.scripts]
+gslocal = "gslocal.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["gslocal*"]
+
+[tool.setuptools.package-data]
+"gslocal.data" = ["*.json"]

@@ -1,0 +1,13 @@
+{
+  "created_at": "2025-01-01T00:00:00Z",
+  "assignment": {
+    "due_date": "2025-01-15T23:59:59Z"
+  },
+  "users": [
+    {
+      "assignment": {
+        "due_date": "2025-01-15T23:59:59Z"
+      }
+    }
+  ]
+}
