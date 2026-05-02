@@ -9,7 +9,7 @@ import sys
 import zipfile
 from pathlib import Path
 
-from gslocal.log import log_error, log_info
+from gslocal.ui.log import log_error, log_info
 
 
 def _check_dependencies() -> None:
@@ -26,10 +26,7 @@ def _check_dependencies() -> None:
         capture_output=True,
     )
     if result.returncode != 0:
-        log_error(
-            "Docker daemon is not running.\n"
-            "Please start Docker and try again."
-        )
+        log_error("Docker daemon is not running.\nPlease start Docker and try again.")
         sys.exit(1)
 
     if shutil.which("git") is None:
@@ -55,11 +52,11 @@ def _resolve_timeout(args_timeout: int | None, config_timeout: int) -> int:
 
 
 def cmd_run(args) -> None:
-    from gslocal.config import find_project_root, load_config, check_placeholders
-    from gslocal.build import needs_build, run_build, check_no_build_zip, get_zip_path
-    from gslocal.submission import prepare_submission, detect_submission_type
-    from gslocal.docker import image_name, needs_image_build, build_image, run_container
+    from gslocal.build import check_no_build_zip, get_zip_path, needs_build, run_build
+    from gslocal.config import check_placeholders, find_project_root, load_config
+    from gslocal.docker import build_image, image_name, needs_image_build, run_container
     from gslocal.results import format_results
+    from gslocal.submission import detect_submission_type, prepare_submission
 
     _check_dependencies()
 
@@ -117,11 +114,15 @@ def cmd_run(args) -> None:
             no_build=args.no_build,
         )
 
+        # Resolve timeout and verbose (CLI flag takes precedence over config)
+        timeout = _resolve_timeout(args.timeout, config.run.timeout)
+        verbose = args.verbose or config.run.verbose
+
         if args.no_build:
             log_info("Skipping build (--no-build)")
             zip_path = check_no_build_zip(project_root, config.build.zip)
         elif do_build:
-            run_build(project_root, config)
+            run_build(project_root, config, verbose=verbose)
             zip_path = get_zip_path(project_root, config.build.zip)
         else:
             log_info("Source unchanged, skipping build.")
@@ -137,12 +138,9 @@ def cmd_run(args) -> None:
         log_info(f"Docker image name: {img_name}")
 
         if needs_image_build(img_name, force_rebuild=args.rebuild, build_ran=do_build):
-            build_image(project_root, config, img_name)
+            build_image(project_root, config, img_name, verbose=verbose)
         else:
             log_info(f"Using existing Docker image: {img_name}")
-
-        # Resolve timeout
-        timeout = _resolve_timeout(args.timeout, config.run.timeout)
 
         # Run autograder
         success = run_container(
@@ -151,6 +149,7 @@ def cmd_run(args) -> None:
             results_dir,
             timeout=timeout,
             interactive=args.interactive,
+            verbose=verbose,
         )
 
         # Print results if available

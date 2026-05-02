@@ -1,6 +1,7 @@
 """Colored log helpers."""
 
 import sys
+
 from colorama import Fore, Style
 
 

@@ -4,18 +4,25 @@ from __future__ import annotations
 
 import glob
 import hashlib
+import os
 import shlex
 import subprocess
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from gslocal.log import log_error, log_info, log_success
+from gslocal.ui.log import log_error, log_info, log_success
 
 if TYPE_CHECKING:
     from gslocal.config import Config
 
 BUILD_HASH_FILE = ".build_hash"
+_COLOR_ENV = {
+    **os.environ,
+    "FORCE_COLOR": "1",
+    "CLICOLOR_FORCE": "1",
+    "TERM": "xterm-256color",
+}
 
 
 def _compute_source_hash(project_root: Path, watch_patterns: list[str]) -> str:
@@ -73,14 +80,27 @@ def needs_build(
     return current != stored
 
 
-def run_build(project_root: Path, config: "Config") -> None:
+def run_build(project_root: Path, config: "Config", *, verbose: bool = False) -> None:
     """Invoke the build command. Exits on failure."""
-    log_info(f"Building autograder: {config.build.cmd}")
+    from gslocal.ui.spinner import Spinner
 
     cmd = shlex.split(config.build.cmd)
-    result = subprocess.run(cmd, cwd=project_root)
+    if verbose:
+        log_info(f"Building autograder: {config.build.cmd}")
+    with Spinner("Building autograder...", enabled=not verbose):
+        result = subprocess.run(
+            cmd,
+            cwd=project_root,
+            capture_output=not verbose,
+            text=True,
+            env=_COLOR_ENV,
+        )
 
     if result.returncode != 0:
+        if not verbose and result.stdout:
+            print(result.stdout, end="")
+        if not verbose and result.stderr:
+            print(result.stderr, end="", file=sys.stderr)
         log_error("Build command failed.")
         sys.exit(1)
 

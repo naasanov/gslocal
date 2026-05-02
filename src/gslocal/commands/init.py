@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from gslocal.log import log_error, log_info, log_success
+from gslocal.ui.log import log_error, log_info, log_success
 
 _PLACEHOLDERS = {
     "build.cmd": "<your-build-command>",
@@ -68,7 +68,9 @@ def cmd_init(args) -> None:
             setup=_PLACEHOLDERS["docker.setup"],
             timeout=60,
         )
-        log_success("gslocal.toml written with placeholder values. Edit it before running.")
+        log_success(
+            "gslocal.toml written with placeholder values. Edit it before running."
+        )
         return
 
     # Interactive mode
@@ -77,21 +79,21 @@ def cmd_init(args) -> None:
     print("Required fields will use a placeholder if skipped.")
     print()
 
-    cmd = _prompt('Build command', 'e.g. "mvn clean package"')
+    cmd = _prompt("Build command", 'e.g. "mvn clean package"')
     if not cmd:
         cmd = _PLACEHOLDERS["build.cmd"]
 
-    zip_ = _prompt('Zip output', 'e.g. "target/*.zip"')
+    zip_ = _prompt("Zip output", 'e.g. "target/*.zip"')
     if not zip_:
         zip_ = _PLACEHOLDERS["build.zip"]
 
-    watch_raw = _prompt('Watch patterns, comma-separated', 'e.g. "src/**/*,pom.xml"')
+    watch_raw = _prompt("Watch patterns, comma-separated", 'e.g. "src/**/*,pom.xml"')
     if watch_raw:
         watch = [w.strip() for w in watch_raw.split(",") if w.strip()]
     else:
         watch = [_PLACEHOLDERS["build.watch"]]
 
-    setup = _prompt('Path to setup.sh', 'e.g. "src/main/resources/setup.sh"')
+    setup = _prompt("Path to setup.sh", 'e.g. "src/main/resources/setup.sh"')
     if not setup:
         setup = _PLACEHOLDERS["docker.setup"]
 
@@ -106,7 +108,7 @@ def cmd_init(args) -> None:
     print(
         "[INFO] To use mock submission metadata, add to gslocal.toml:\n"
         "         [docker]\n"
-        "         metadata = \"path/to/mock_submission_metadata.json\""
+        '         metadata = "path/to/mock_submission_metadata.json"'
     )
     print()
 
@@ -120,7 +122,11 @@ def cmd_init(args) -> None:
                 gitignore.write_text(content.rstrip("\n") + "\n.gslocal/\n")
             log_success("Added .gslocal/ to .gitignore")
         else:
-            log_info("No .gitignore found — skipping (create one and add .gslocal/ manually)")
+            log_info(
+                "No .gitignore found — skipping (create one and add .gslocal/ manually)"
+            )
 
     _write_toml(target, cmd=cmd, zip_=zip_, watch=watch, setup=setup, timeout=timeout)
-    log_success("gslocal is ready. Run `gslocal run <submission>` to test a submission.")
+    log_success(
+        "gslocal is ready. Run `gslocal run <submission>` to test a submission."
+    )

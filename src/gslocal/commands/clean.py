@@ -7,7 +7,7 @@ import sys
 
 from gslocal.config import find_project_root
 from gslocal.docker import image_name, remove_image
-from gslocal.log import log_error, log_info, log_warn
+from gslocal.ui.log import log_error, log_info, log_warn
 
 
 def cmd_clean(args) -> None:

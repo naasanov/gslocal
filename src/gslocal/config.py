@@ -13,7 +13,7 @@ try:
 except ImportError:
     import tomli as tomllib  # type: ignore[no-reuse-of-import]
 
-from gslocal.log import log_error
+from gslocal.ui.log import log_error
 
 _PLACEHOLDER_RE = re.compile(r"^<.+>$")
 
@@ -34,6 +34,7 @@ class DockerConfig:
 @dataclass
 class RunConfig:
     timeout: int = 60
+    verbose: bool = False
 
 
 @dataclass
@@ -96,7 +97,10 @@ def load_config(project_root: Path) -> Config:
             setup=docker_data["setup"],
             metadata=docker_data.get("metadata"),
         ),
-        run=RunConfig(timeout=run_data.get("timeout", 60)),
+        run=RunConfig(
+            timeout=run_data.get("timeout", 60),
+            verbose=run_data.get("verbose", False),
+        ),
         project_root=project_root,
     )
 
@@ -112,11 +116,11 @@ def check_placeholders(config: Config) -> None:
     ]
     for key, value in checks:
         if isinstance(value, str) and _PLACEHOLDER_RE.match(value):
-            offenders.append(f"  {key} = \"{value}\"")
+            offenders.append(f'  {key} = "{value}"')
 
     for i, pattern in enumerate(config.build.watch):
         if isinstance(pattern, str) and _PLACEHOLDER_RE.match(pattern):
-            offenders.append(f"  build.watch[{i}] = \"{pattern}\"")
+            offenders.append(f'  build.watch[{i}] = "{pattern}"')
 
     if offenders:
         log_error(

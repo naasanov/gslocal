@@ -4,14 +4,24 @@ from __future__ import annotations
 
 import hashlib
 import importlib.resources
+import os
 import re
 import shutil
 import subprocess
 import sys
+import time
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from gslocal.log import log_error, log_info, log_success
+from gslocal.ui.log import log_error, log_info, log_success
+
+_COLOR_ENV = {
+    **os.environ,
+    "FORCE_COLOR": "1",
+    "CLICOLOR_FORCE": "1",
+    "TERM": "xterm-256color",
+}
 
 if TYPE_CHECKING:
     from gslocal.config import Config
@@ -93,41 +103,63 @@ def needs_image_build(
 def _stage_default_metadata(gslocal_dir: Path) -> str:
     """Copy the bundled default metadata into .gslocal/ and return its project-relative path."""
     dest = gslocal_dir / "default_submission_metadata.json"
-    src = importlib.resources.files("gslocal.data").joinpath("default_submission_metadata.json")
+    src = importlib.resources.files("gslocal.data").joinpath(
+        "default_submission_metadata.json"
+    )
     with importlib.resources.as_file(src) as src_path:
         shutil.copy2(src_path, dest)
     # Return path relative to project root (one level up from .gslocal/)
     return ".gslocal/default_submission_metadata.json"
 
 
-def build_image(project_root: Path, config: "Config", name: str) -> None:
+def build_image(
+    project_root: Path, config: "Config", name: str, *, verbose: bool = False
+) -> None:
     """Write a temporary Dockerfile and build the Docker image."""
+    from gslocal.config import DockerConfig
+    from gslocal.ui.spinner import Spinner
+
     gslocal_dir = project_root / ".gslocal"
     gslocal_dir.mkdir(parents=True, exist_ok=True)
 
     # Resolve metadata path — use bundled default if not configured
     if not config.docker.metadata:
         metadata_path = _stage_default_metadata(gslocal_dir)
-        log_info("No metadata configured — using bundled default submission metadata.")
+        log_info("No metadata configured - using bundled default submission metadata.")
     else:
         metadata_path = config.docker.metadata
 
     # Temporarily override metadata for Dockerfile generation
-    from gslocal.config import DockerConfig
-    docker_with_metadata = DockerConfig(setup=config.docker.setup, metadata=metadata_path)
-
-    from dataclasses import replace
+    docker_with_metadata = DockerConfig(
+        setup=config.docker.setup, metadata=metadata_path
+    )
     effective_config = replace(config, docker=docker_with_metadata)
 
     dockerfile_content = generate_dockerfile(effective_config)
     dockerfile_path = gslocal_dir / "Dockerfile"
     dockerfile_path.write_text(dockerfile_content)
 
-    log_info("Building Docker image...")
-    result = subprocess.run(
-        ["docker", "build", "-t", name, "-f", str(dockerfile_path), str(project_root)],
-    )
+    with Spinner("Building Docker image...", enabled=not verbose):
+        result = subprocess.run(
+            [
+                "docker",
+                "build",
+                "-t",
+                name,
+                "-f",
+                str(dockerfile_path),
+                str(project_root),
+            ],
+            capture_output=not verbose,
+            text=True,
+            env=_COLOR_ENV,
+        )
+
     if result.returncode != 0:
+        if not verbose and result.stdout:
+            print(result.stdout, end="")
+        if not verbose and result.stderr:
+            print(result.stderr, end="", file=sys.stderr)
         log_error("Docker image build failed.")
         sys.exit(1)
     log_success(f"Docker image built: {name}")
@@ -140,20 +172,28 @@ def run_container(
     *,
     timeout: int,
     interactive: bool,
+    verbose: bool = False,
 ) -> bool:
     """
     Run the autograder container.
     Returns True on success, False on failure.
     In interactive mode, drops into a shell and returns True.
     """
+    from gslocal.ui.spinner import Spinner
+
     if interactive:
         log_info("Starting interactive container...")
         log_info("Run './run_autograder' to execute the autograder manually")
         subprocess.run(
             [
-                "docker", "run", "-it", "--rm",
-                "-v", f"{submission_dir}:/autograder/submission:ro",
-                "-v", f"{results_dir}:/autograder/results",
+                "docker",
+                "run",
+                "-it",
+                "--rm",
+                "-v",
+                f"{submission_dir}:/autograder/submission:ro",
+                "-v",
+                f"{results_dir}:/autograder/results",
                 name,
                 "/bin/bash",
             ],
@@ -163,9 +203,13 @@ def run_container(
     # Start detached container
     result = subprocess.run(
         [
-            "docker", "run", "-d",
-            "-v", f"{submission_dir}:/autograder/submission:ro",
-            "-v", f"{results_dir}:/autograder/results",
+            "docker",
+            "run",
+            "-d",
+            "-v",
+            f"{submission_dir}:/autograder/submission:ro",
+            "-v",
+            f"{results_dir}:/autograder/results",
             name,
         ],
         capture_output=True,
@@ -176,33 +220,33 @@ def run_container(
         return False
 
     container_id = result.stdout.strip()
-    log_info("Running autograder...")
 
-    # Poll for completion with timeout
-    import time
     elapsed = 0
     try:
-        while True:
-            inspect = subprocess.run(
-                ["docker", "inspect", "-f", "{{.State.Running}}", container_id],
-                capture_output=True,
-                text=True,
-            )
-            if inspect.returncode != 0 or inspect.stdout.strip() != "true":
-                break
-
-            if elapsed >= timeout:
-                subprocess.run(["docker", "kill", container_id], capture_output=True)
-                subprocess.run(["docker", "rm", container_id], capture_output=True)
-                log_error(
-                    f"Autograder timed out after {timeout} seconds.\n"
-                    "  To increase the timeout:\n"
-                    "    gslocal run -t SECS <submission>"
+        with Spinner("Running autograder...", enabled=not verbose):
+            while True:
+                inspect = subprocess.run(
+                    ["docker", "inspect", "-f", "{{.State.Running}}", container_id],
+                    capture_output=True,
+                    text=True,
                 )
-                return False
+                if inspect.returncode != 0 or inspect.stdout.strip() != "true":
+                    break
 
-            time.sleep(1)
-            elapsed += 1
+                if elapsed >= timeout:
+                    subprocess.run(
+                        ["docker", "kill", container_id], capture_output=True
+                    )
+                    subprocess.run(["docker", "rm", container_id], capture_output=True)
+                    log_error(
+                        f"Autograder timed out after {timeout} seconds.\n"
+                        "  To increase the timeout:\n"
+                        "    gslocal run -t SECS <submission>"
+                    )
+                    return False
+
+                time.sleep(1)
+                elapsed += 1
     except KeyboardInterrupt:
         log_info("Interrupted — stopping container...")
         subprocess.run(["docker", "kill", container_id], capture_output=True)

@@ -8,12 +8,14 @@ import sys
 import zipfile
 from pathlib import Path
 
-from gslocal.log import log_error, log_info
+from gslocal.ui.log import log_error, log_info
 
 
 def detect_submission_type(submission: str) -> str:
     """Return 'github', 'zip', 'directory', or 'unknown'."""
-    if submission.startswith("git@github.com:") or submission.startswith("https://github.com"):
+    if submission.startswith("git@github.com:") or submission.startswith(
+        "https://github.com"
+    ):
         return "github"
     p = Path(submission)
     if p.is_file() and submission.endswith(".zip"):

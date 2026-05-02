@@ -8,7 +8,7 @@ from pathlib import Path
 
 from colorama import Fore, Style
 
-from gslocal.log import log_error, log_warn
+from gslocal.ui.log import log_error, log_warn
 
 
 def format_results(results_file: Path) -> None:
@@ -49,14 +49,18 @@ def format_results(results_file: Path) -> None:
             print(f"  {Fore.RED}FAIL{Style.RESET_ALL}  {score_str}  {name}")
             if output:
                 reason = output.replace("FAILED/ABORTED:: ", "").strip()
-                print(f"                      {Fore.YELLOW}-> {reason}{Style.RESET_ALL}")
+                print(
+                    f"                      {Fore.YELLOW}-> {reason}{Style.RESET_ALL}"
+                )
         else:
             passed += 1
             print(f"  {Fore.GREEN}PASS{Style.RESET_ALL}  {score_str}  {name}")
 
     print()
     print("=" * 60)
-    summary = f"  {Fore.BLUE}Score:{Style.RESET_ALL} {total_score:.2f} / {total_max:.2f}"
+    summary = (
+        f"  {Fore.BLUE}Score:{Style.RESET_ALL} {total_score:.2f} / {total_max:.2f}"
+    )
     if failed > 0:
         summary += (
             f"  ({Fore.GREEN}{passed} passed{Style.RESET_ALL}, "
