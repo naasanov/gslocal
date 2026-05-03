@@ -6,11 +6,47 @@ build-backend = "setuptools.build_meta"
 name = "gslocal"
 version = "0.1.0"
 description = "Local Gradescope autograder runner"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Nicolas Asanov", email = "nicolas.a.asanov@gmail.com" },
+]
+keywords = ["gradescope", "autograder", "cli", "docker", "education"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Education",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Utilities",
+]
 requires-python = ">=3.9"
 dependencies = [
     "colorama",
     "tomli; python_version < '3.11'",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "build",
+    "twine",
+]
+
+[project.urls]
+Homepage = "https://github.com/naasanov/gslocal"
+Repository = "https://github.com/naasanov/gslocal"
+Issues = "https://github.com/naasanov/gslocal/issues"
+Changelog = "https://github.com/naasanov/gslocal/blob/main/CHANGELOG.md"
 
 [project.scripts]
 gslocal = "gslocal.cli:main"
