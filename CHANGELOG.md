@@ -8,7 +8,10 @@ when practical.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-05-02
+
 ### Added
+- First public release of `gslocal`
 - Initial project scaffolding for running Gradescope autograders locally
 - `gslocal init` command for generating project configuration
 - `gslocal run` command for building and executing autograders against submissions
@@ -18,7 +21,4 @@ when practical.
 - Formatted terminal output for autograder results
 
 ### Changed
-- Documentation and project structure are still evolving prior to the first tagged release
-
-### Fixed
-- Placeholder section for future bug-fix notes
+- Initial project documentation, contribution docs, and release automation
