@@ -1,0 +1,213 @@
+name: Release and Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. 1.2.3"
+        required: true
+        type: string
+
+jobs:
+  build:
+    name: Validate and build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate release branch
+        run: |
+          if [ "${GITHUB_REF_NAME}" != "main" ]; then
+            echo "Releases must be cut from main, not ${GITHUB_REF_NAME}."
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate version and changelog
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+          import re
+          import sys
+          import tomllib
+
+          version = os.environ["INPUT_VERSION"].strip()
+          pyproject = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
+          package_version = pyproject["project"]["version"]
+
+          if version != package_version:
+              print(
+                  f"Workflow input version {version!r} does not match "
+                  f"pyproject.toml version {package_version!r}."
+              )
+              sys.exit(1)
+
+          changelog = pathlib.Path("CHANGELOG.md").read_text()
+          heading = re.compile(rf"^## \[{re.escape(version)}\](?:\s+-\s+.+)?$", re.MULTILINE)
+          if not heading.search(changelog):
+              print(
+                  f"CHANGELOG.md does not contain a release heading for {version!r}. "
+                  f"Add a section like '## [{version}] - YYYY-MM-DD'."
+              )
+              sys.exit(1)
+          PY
+
+      - name: Fail if version already exists on PyPI
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+          import urllib.error
+          import urllib.request
+
+          version = os.environ["INPUT_VERSION"].strip()
+          url = "https://pypi.org/pypi/gslocal/json"
+
+          try:
+              with urllib.request.urlopen(url) as response:
+                  data = json.load(response)
+          except urllib.error.HTTPError as exc:
+              if exc.code == 404:
+                  sys.exit(0)
+              raise
+
+          if version in data.get("releases", {}):
+              print(f"Version {version} is already published on PyPI. Bump the version and try again.")
+              sys.exit(1)
+          PY
+
+      - name: Install build tools
+        run: python -m pip install --upgrade build twine
+
+      - name: Build package distributions
+        run: python -m build
+
+      - name: Check distribution metadata
+        run: python -m twine check dist/*
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+  release:
+    name: Tag and create GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create tag if needed
+        env:
+          TAG: v${{ inputs.version }}
+        run: |
+          current_sha="$(git rev-parse HEAD)"
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            tag_sha="$(git rev-list -n 1 "$TAG")"
+            if [ "$tag_sha" != "$current_sha" ]; then
+              echo "Tag $TAG already exists on a different commit."
+              exit 1
+            fi
+            echo "Tag $TAG already exists on the current commit."
+          else
+            git tag "$TAG" "$current_sha"
+            git push origin "$TAG"
+          fi
+
+      - name: Prepare release notes from changelog
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+          import re
+          import sys
+
+          version = os.environ["INPUT_VERSION"].strip()
+          lines = pathlib.Path("CHANGELOG.md").read_text().splitlines()
+          start = None
+          end = None
+
+          for i, line in enumerate(lines):
+              if re.match(rf"^## \[{re.escape(version)}\](?:\s+-\s+.+)?$", line):
+                  start = i + 1
+                  continue
+              if start is not None and re.match(r"^## \[", line):
+                  end = i
+                  break
+
+          if start is None:
+              print(f"Could not find changelog section for {version}.")
+              sys.exit(1)
+
+          if end is None:
+              end = len(lines)
+
+          body = "\n".join(lines[start:end]).strip()
+          if not body:
+              print(f"Changelog section for {version} is empty.")
+              sys.exit(1)
+
+          pathlib.Path("release-notes.md").write_text(body + "\n")
+          PY
+
+      - name: Create GitHub release if needed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v${{ inputs.version }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "GitHub release $TAG already exists."
+          else
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --notes-file release-notes.md
+          fi
+
+  publish:
+    name: Publish to PyPI
+    needs: [build, release]
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

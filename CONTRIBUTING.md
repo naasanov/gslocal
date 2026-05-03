@@ -5,7 +5,7 @@ Thanks for your interest in contributing to `gslocal`.
 ## Before You Start
 
 - For small fixes, feel free to open a pull request directly.
-- For larger changes, please open an issue first so the approach can be discussed.
+- For larger changes, opening an issue first is appreciated so the approach can be discussed, but you are still welcome to open a pull request directly.
 - Be respectful and collaborative. Please follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Development Setup
@@ -67,6 +67,7 @@ When opening a pull request:
 
 - Explain what changed and why
 - Describe how you tested it
+- Update `CHANGELOG.md` if the change is user-facing and should appear in release notes
 - Call out any tradeoffs, known limitations, or follow-up work
 
 Small, focused pull requests are easier to review and merge.

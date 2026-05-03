@@ -202,6 +202,38 @@ Please open an issue before starting work on a large change.
 
 ---
 
+## Releasing
+
+`gslocal` is released through the GitHub Actions workflow at `.github/workflows/publish.yml`.
+
+Before cutting a release:
+
+1. Update `version` in `pyproject.toml`
+2. Add a matching section to `CHANGELOG.md`, for example `## [0.1.1] - 2026-05-02`
+3. Merge the release-ready changes to `main`
+
+Then, in GitHub:
+
+1. Open `Actions`
+2. Select `Release and Publish`
+3. Click `Run workflow`
+4. Enter the version number, such as `0.1.1`
+
+The workflow will:
+
+- verify the run is on `main`
+- verify the requested version matches `pyproject.toml`
+- verify `CHANGELOG.md` contains a section for that version
+- fail if that version is already published on PyPI
+- build the package and run `twine check`
+- create the `v<version>` tag if needed
+- create the GitHub Release from the matching changelog section if needed
+- publish the package to PyPI
+
+If the GitHub tag or release is created but PyPI publishing fails, fix the issue and rerun the workflow for the same version. If PyPI already has that version, publish a new patch version instead.
+
+---
+
 ## License
 
 [MIT](LICENSE)
