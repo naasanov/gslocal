@@ -20,8 +20,11 @@ def _prompt(msg: str, hint: str = "") -> str:
     if hint:
         print(f"  {hint}")
     try:
-        return input(f"{msg}: ").strip()
+        value = input(f"{msg}: ").strip()
+        print()
+        return value
     except EOFError:
+        print()
         return ""
 
 
@@ -36,15 +39,17 @@ def _write_toml(
     watch_toml = "[" + ", ".join(f'"{w}"' for w in watch) + "]"
     content = (
         "[build]\n"
-        f'cmd = "{cmd}"\n'
-        f'zip = "{zip_}"\n'
-        f"watch = {watch_toml}\n"
+        f'cmd = "{cmd}"  # shell command that builds the autograder zip\n'
+        f'zip = "{zip_}"  # glob that matches the built zip file\n'
+        f"watch = {watch_toml}  # glob patterns to hash when deciding whether to rebuild\n"
         "\n"
         "[docker]\n"
-        f'setup = "{setup}"\n'
+        f'setup = "{setup}"  # path to the Gradescope setup.sh script\n'
+        '# metadata = "path/to/mock_submission_metadata.json"  # optional mock submission metadata\n'
         "\n"
         "[run]\n"
-        f"timeout = {timeout}\n"
+        f"timeout = {timeout}  # max autograder runtime in seconds\n"
+        "verbose = false  # show full build and Docker output\n"
     )
     dest.write_text(content)
 
@@ -83,11 +88,13 @@ def cmd_init(args) -> None:
     if not cmd:
         cmd = _PLACEHOLDERS["build.cmd"]
 
-    zip_ = _prompt("Zip output", 'e.g. "target/*.zip"')
+    zip_ = _prompt("Zip output (glob)", 'e.g. "target/*.zip"')
     if not zip_:
         zip_ = _PLACEHOLDERS["build.zip"]
 
-    watch_raw = _prompt("Watch patterns, comma-separated", 'e.g. "src/**/*,pom.xml"')
+    watch_raw = _prompt(
+        "Watch patterns, comma-separated (glob)", 'e.g. "src/**/*,pom.xml"'
+    )
     if watch_raw:
         watch = [w.strip() for w in watch_raw.split(",") if w.strip()]
     else:
@@ -97,12 +104,7 @@ def cmd_init(args) -> None:
     if not setup:
         setup = _PLACEHOLDERS["docker.setup"]
 
-    timeout_raw = _prompt("Autograder timeout in seconds [60]")
-    try:
-        timeout = int(timeout_raw) if timeout_raw else 60
-    except ValueError:
-        log_error(f"Invalid timeout value: {timeout_raw!r}. Using 60.")
-        timeout = 60
+    timeout = 60
 
     print()
     print(
