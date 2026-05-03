@@ -22,9 +22,3 @@ when practical.
 
 ### Fixed
 - Placeholder section for future bug-fix notes
-
-## [0.1.0] - TBD
-
-### Added
-- First public release of `gslocal`
-
