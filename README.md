@@ -1,5 +1,9 @@
 # gslocal
 
+[![PyPI](https://img.shields.io/pypi/v/gslocal)](https://pypi.org/project/gslocal/)
+[![Python](https://img.shields.io/pypi/pyversions/gslocal)](https://pypi.org/project/gslocal/)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 Run your [Gradescope](https://gradescope.com) autograder locally against any submission, without uploading anything to Gradescope.
 
 gslocal mirrors Gradescope's exact container workflow: it builds your autograder zip, spins up the same Docker base image Gradescope uses, mounts the submission, runs the grader, and prints a formatted score summary. Build and image caching mean repeat runs are fast.
