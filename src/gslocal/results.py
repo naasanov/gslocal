@@ -8,7 +8,7 @@ from pathlib import Path
 
 from colorama import Fore, Style
 
-from gslocal.ui.log import log_error, log_warn
+from gslocal.ui.log import log_error, log_info, log_warn
 
 
 def format_results(results_file: Path) -> None:
@@ -18,6 +18,12 @@ def format_results(results_file: Path) -> None:
     except (OSError, json.JSONDecodeError) as e:
         log_error(f"Failed to parse results: {e}")
         sys.exit(1)
+
+    top_output = data.get("output", "").strip()
+    if top_output:
+        log_info("Output (from results.json):")
+        for line in top_output.splitlines():
+            print(f"  {line}")
 
     tests = data.get("tests", [])
     if not tests:
