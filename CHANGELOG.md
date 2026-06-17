@@ -13,6 +13,9 @@ when practical.
 ### Added
 - Print top-level `output` field from `results.json` as an info message after each run
 
+### Fixed
+- Use `--mount type=bind,...` instead of `-v` for Docker volume mounts to fix path parsing on Windows (Git Bash MSYS mangling and drive-letter colon ambiguity)
+
 ## [0.1.0] - 2026-05-02
 
 ### Added
