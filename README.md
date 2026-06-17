@@ -180,29 +180,7 @@ gslocal stores all state in a `.gslocal/` directory at the project root. Add it 
 
 ## Contributing
 
-Contributions are welcome. To get started:
-
-```bash
-git clone https://github.com/naasanov/gslocal.git
-cd gslocal
-pip install -e .
-```
-
-The source lives in `src/gslocal/`. Key modules:
-
-| Module | Responsibility |
-|---|---|
-| `cli.py` | Argument parsing and subcommand dispatch |
-| `config.py` | Config loading, validation, project root resolution |
-| `commands/run.py` | Run orchestration |
-| `commands/init.py` | Interactive config generation |
-| `commands/clean.py` | State cleanup |
-| `build.py` | Build invocation and hash-based caching |
-| `submission.py` | Submission preparation (zip, dir, GitHub) |
-| `docker.py` | Dockerfile generation, image build, container execution |
-| `results.py` | Terminal formatting of `results.json` |
-
-Please open an issue before starting work on a large change.
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, project layout, and pull request guidelines.
 
 ---
 

@@ -67,7 +67,7 @@ When opening a pull request:
 
 - Explain what changed and why
 - Describe how you tested it
-- Update `CHANGELOG.md` if the change is user-facing and should appear in release notes
+- Update `CHANGELOG.md` with an entry under `[Unreleased]` if the change is user-facing
 - Call out any tradeoffs, known limitations, or follow-up work
 
 Small, focused pull requests are easier to review and merge.
