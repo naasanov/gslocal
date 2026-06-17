@@ -8,6 +8,11 @@ when practical.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-17
+
+### Added
+- Print top-level `output` field from `results.json` as an info message after each run
+
 ## [0.1.0] - 2026-05-02
 
 ### Added
